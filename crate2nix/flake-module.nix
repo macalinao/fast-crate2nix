@@ -56,7 +56,7 @@
             inherit nixTestRunner;
           };
           tools-unit-tests = nixTestRunner.runTests {
-            tests = import ../tools-tests.nix;
+            tests = pkgs.callPackage ../tools-tests.nix { };
           };
         } // (pkgs.callPackage ../tests.nix { }).checks;
     };

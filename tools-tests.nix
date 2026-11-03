@@ -1,6 +1,7 @@
+{ pkgs ? import ./nix/nixpkgs.nix { }
+, lib ? pkgs.lib
+}:
 let
-  pkgs = import ./nix/nixpkgs.nix { };
-  lib = pkgs.lib;
   tools = pkgs.callPackage ./tools.nix { };
   inherit (tools) internal;
 in
