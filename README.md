@@ -1,5 +1,35 @@
 # crate2nix
 
+## fast-crate2nix
+
+`macalinao/fast-crate2nix` is a fork of
+[nix-community/crate2nix](https://github.com/nix-community/crate2nix) that
+tracks upstream `master` and adds:
+
+- **Cargo profiles honoured** -- `opt-level` and `codegen-units` from
+  `[profile.release]`/`[profile.dev]`, including `package."*"` and
+  `package.<name>` overrides, are applied per crate (opt out with
+  `useCargoProfiles = false`). Upstream builds everything at
+  `-C opt-level=3` with one codegen unit.
+- **`testExtraRustcOpts`** -- extra rustc flags for the test build only, e.g.
+  `[ "-C opt-level=0" ]`.
+- **`useNextest`** -- run tests with cargo-nextest
+  ([upstream PR #462](https://github.com/nix-community/crate2nix/pull/462)).
+- **Workspace inheritance for git dependencies**
+  ([upstream PR #430](https://github.com/nix-community/crate2nix/pull/430)).
+- **`default` feature fixes** -- no phantom `default` feature for crates that
+  declare none, and an empty `default = []` is kept.
+- **`appliedCargoNix { cargoNixArgs = { ... }; }`** -- pass crate overrides
+  and other arguments to the generated `Cargo.nix`.
+
+Use it as a flake input:
+
+```nix
+inputs.crate2nix.url = "github:macalinao/fast-crate2nix";
+```
+
+The rest of this README is upstream's.
+
 [![tests-nix-linux](https://github.com/nix-community/crate2nix/actions/workflows/tests-nix-linux.yml/badge.svg)](https://github.com/nix-community/crate2nix/actions/workflows/tests-nix-linux.yml)
 [![tests-nix-macos](https://github.com/nix-community/crate2nix/actions/workflows/tests-nix-macos.yml/badge.svg)](https://github.com/nix-community/crate2nix/actions/workflows/tests-nix-macos.yml)
 [![Crate](https://img.shields.io/crates/v/crate2nix.svg)](https://crates.io/crates/crate2nix)
