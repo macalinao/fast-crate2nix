@@ -26,6 +26,10 @@
 , extraTargetFlags ? {}
   # Whether to perform release builds: longer compile times, faster binaries.
 , release ? true
+  # Apply `opt-level` and `codegen-units` from the workspace's
+  # `[profile.release]` (or `[profile.dev]` if `release = false`), including
+  # `[profile.*.package.<name>]` and `package."*"` overrides, like cargo does.
+, useCargoProfiles ? true
   # Additional crate2nix configuration if it exists.
 , crateConfig
   ? if builtins.pathExists ./crate-config.nix
@@ -1537,6 +1541,8 @@ rec {
     of crate given as the second argument.
 
     testCrateFlags: list of flags to pass to the test exectuable
+    testExtraRustcOpts: extra rustc flags for the test build of the crate only,
+      e.g. [ "-C opt-level=0" ] to compile the test harness quickly
     testInputs: list of packages that should be available during test execution
   */
   crateWithTest =
@@ -1547,9 +1553,11 @@ rec {
     , testPreRun
     , testPostRun
     , useNextest ? false
+    , testExtraRustcOpts ? [ ]
     ,
     }:
       assert builtins.typeOf testCrateFlags == "list";
+      assert builtins.typeOf testExtraRustcOpts == "list";
       assert builtins.typeOf testInputs == "list";
       assert builtins.typeOf testPreRun == "string";
       assert builtins.typeOf testPostRun == "string";
@@ -1561,8 +1569,10 @@ rec {
         # their log and the test executables to $out for later inspection.
         test =
           let
-            drv = testCrate.override (_: {
+            drv = testCrate.override (old: {
               buildTests = true;
+            } // lib.optionalAttrs (testExtraRustcOpts != [ ]) {
+              extraRustcOpts = (old.extraRustcOpts or [ ]) ++ testExtraRustcOpts;
             });
             # If the user hasn't set any pre/post commands, we don't want to
             # insert empty lines. This means that any existing users of crate2nix
@@ -1683,6 +1693,9 @@ rec {
       testPostRun ? ""
     , # Use cargo-nextest to run tests instead of running test binaries directly.
       useNextest ? false
+    , # Extra rustc flags for the test build of this crate only (not its
+      # dependencies, not the normal build), e.g. [ "-C opt-level=0" ].
+      testExtraRustcOpts ? [ ]
     ,
     }:
     lib.makeOverridable
@@ -1695,6 +1708,7 @@ rec {
         , testPreRun
         , testPostRun
         , useNextest
+        , testExtraRustcOpts
         ,
         }:
         let
@@ -1735,6 +1749,7 @@ rec {
                     testPreRun
                     testPostRun
                     useNextest
+                    testExtraRustcOpts
                     ;
                 }
             else
@@ -1752,6 +1767,7 @@ rec {
           testPreRun
           testPostRun
           useNextest
+          testExtraRustcOpts
           ;
       };
 
@@ -1816,7 +1832,14 @@ rec {
             crateConfig = builtins.removeAttrs crateConfig' [
               "resolvedDefaultFeatures"
               "devDependencies"
+              "profiles"
             ];
+            # opt-level/codegen-units from the workspace's [profile.*] tables.
+            profileSettings =
+              if useCargoProfiles then
+                crateConfig'.profiles.${if release then "release" else "dev"} or { }
+              else
+                { };
             devDependencies = lib.optionals (runTests && packageId == rootPackageId) (
               crateConfig'.devDependencies or [ ]
             );
@@ -1899,7 +1922,10 @@ rec {
                   rawSrc;
               extraRustcOpts =
                 lib.lists.optional (targetFeatures != [ ])
-                  "-C target-feature=${lib.concatMapStringsSep "," (x: "+${x}") targetFeatures}";
+                  "-C target-feature=${lib.concatMapStringsSep "," (x: "+${x}") targetFeatures}"
+                # Comes after buildRustCrate's own `-C opt-level=3`, so it wins.
+                ++ lib.lists.optional (profileSettings ? optLevel)
+                  "-C opt-level=${profileSettings.optLevel}";
               inherit
                 features
                 dependencies
@@ -1907,6 +1933,9 @@ rec {
                 crateRenames
                 release
                 ;
+            }
+            // lib.optionalAttrs (profileSettings ? codegenUnits) {
+              inherit (profileSettings) codegenUnits;
             }
           );
       in
