@@ -134,6 +134,8 @@ rec {
     of crate given as the second argument.
 
     testCrateFlags: list of flags to pass to the test exectuable
+    testExtraRustcOpts: extra rustc flags for the test build of the crate only,
+      e.g. [ "-C opt-level=0" ] to compile the test harness quickly
     testInputs: list of packages that should be available during test execution
   */
   crateWithTest =
@@ -144,9 +146,11 @@ rec {
     , testPreRun
     , testPostRun
     , useNextest ? false
+    , testExtraRustcOpts ? [ ]
     ,
     }:
       assert builtins.typeOf testCrateFlags == "list";
+      assert builtins.typeOf testExtraRustcOpts == "list";
       assert builtins.typeOf testInputs == "list";
       assert builtins.typeOf testPreRun == "string";
       assert builtins.typeOf testPostRun == "string";
@@ -158,8 +162,10 @@ rec {
         # their log and the test executables to $out for later inspection.
         test =
           let
-            drv = testCrate.override (_: {
+            drv = testCrate.override (old: {
               buildTests = true;
+            } // lib.optionalAttrs (testExtraRustcOpts != [ ]) {
+              extraRustcOpts = (old.extraRustcOpts or [ ]) ++ testExtraRustcOpts;
             });
             # If the user hasn't set any pre/post commands, we don't want to
             # insert empty lines. This means that any existing users of crate2nix
@@ -280,6 +286,9 @@ rec {
       testPostRun ? ""
     , # Use cargo-nextest to run tests instead of running test binaries directly.
       useNextest ? false
+    , # Extra rustc flags for the test build of this crate only (not its
+      # dependencies, not the normal build), e.g. [ "-C opt-level=0" ].
+      testExtraRustcOpts ? [ ]
     ,
     }:
     lib.makeOverridable
@@ -292,6 +301,7 @@ rec {
         , testPreRun
         , testPostRun
         , useNextest
+        , testExtraRustcOpts
         ,
         }:
         let
@@ -332,6 +342,7 @@ rec {
                     testPreRun
                     testPostRun
                     useNextest
+                    testExtraRustcOpts
                     ;
                 }
             else
@@ -349,6 +360,7 @@ rec {
           testPreRun
           testPostRun
           useNextest
+          testExtraRustcOpts
           ;
       };
 

@@ -407,6 +407,9 @@ let
       cargoToml = "Cargo.toml";
       customBuild = "sample_projects/cargo_profiles/test.nix";
       expectedOutput = "Hello, cargo_profiles!";
+      expectedTestOutputs = [
+        "test tests::test_extra_rustc_opts_applied ... ok"
+      ];
     }
 
     {

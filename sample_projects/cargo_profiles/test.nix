@@ -1,5 +1,6 @@
-# Checks that [profile.release] opt-level/codegen-units reach rustc, and
-# that `useCargoProfiles = false` restores buildRustCrate's defaults.
+# Checks that [profile.release] opt-level/codegen-units reach rustc, that
+# `useCargoProfiles = false` restores buildRustCrate's defaults, and that
+# testExtraRustcOpts reaches the test build only.
 { pkgs ? import ../../nix/nixpkgs.nix { config = { }; }
 , lib ? pkgs.lib
 , generatedCargoNix ? ./Cargo.nix
@@ -17,4 +18,7 @@ assert has dep "-C opt-level=s";
 assert has dep "-C codegen-units=2";
 assert !(has withoutProfiles.rootCrate.build "-C opt-level=1");
 assert !(has withoutProfiles.rootCrate.build "-C codegen-units=4");
-root
+withProfiles.rootCrate.build.override {
+  runTests = true;
+  testExtraRustcOpts = [ "-C opt-level=0" "--cfg test_only_flag" ];
+}
