@@ -17,6 +17,7 @@
 , targetFeatures ? [ ]
 , extraTargetFlags ? { }
 , release ? true
+, useCargoProfiles ? true
 ,
 }:
 rec {
@@ -412,7 +413,14 @@ rec {
             crateConfig = builtins.removeAttrs crateConfig' [
               "resolvedDefaultFeatures"
               "devDependencies"
+              "profiles"
             ];
+            # opt-level/codegen-units from the workspace's [profile.*] tables.
+            profileSettings =
+              if useCargoProfiles then
+                crateConfig'.profiles.${if release then "release" else "dev"} or { }
+              else
+                { };
             devDependencies = lib.optionals (runTests && packageId == rootPackageId) (
               crateConfig'.devDependencies or [ ]
             );
@@ -483,7 +491,10 @@ rec {
                 });
               extraRustcOpts =
                 lib.lists.optional (targetFeatures != [ ])
-                  "-C target-feature=${lib.concatMapStringsSep "," (x: "+${x}") targetFeatures}";
+                  "-C target-feature=${lib.concatMapStringsSep "," (x: "+${x}") targetFeatures}"
+                # Comes after buildRustCrate's own `-C opt-level=3`, so it wins.
+                ++ lib.lists.optional (profileSettings ? optLevel)
+                  "-C opt-level=${profileSettings.optLevel}";
               inherit
                 features
                 dependencies
@@ -491,6 +502,9 @@ rec {
                 crateRenames
                 release
                 ;
+            }
+            // lib.optionalAttrs (profileSettings ? codegenUnits) {
+              inherit (profileSettings) codegenUnits;
             }
           );
       in

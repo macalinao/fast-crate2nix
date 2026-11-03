@@ -36,6 +36,7 @@ mod lock;
 mod metadata;
 pub mod nix_build;
 mod prefetch;
+pub mod profile;
 pub mod render;
 mod resolve;
 pub mod sources;
@@ -140,6 +141,8 @@ impl BuildInfo {
                 .join("crate2nix.json"),
         )?;
 
+        let profiles = profile::CargoProfiles::read_workspace(metadata.workspace_root.as_deref())?;
+
         Ok(BuildInfo {
             root_package_id: metadata.root.clone(),
             workspace_members: metadata
@@ -157,7 +160,14 @@ impl BuildInfo {
                 .pkgs_by_id
                 .values()
                 .map(|package| {
-                    CrateDerivation::resolve(config, &crate2nix_json, &metadata, package)
+                    let mut c =
+                        CrateDerivation::resolve(config, &crate2nix_json, &metadata, package)?;
+                    c.profiles = profiles.for_crate(
+                        &c.crate_name,
+                        &c.version,
+                        c.is_root_or_workspace_member,
+                    );
+                    Ok(c)
                 })
                 .collect::<Result<_, Error>>()?,
             workspace_root: metadata.workspace_root.clone(),

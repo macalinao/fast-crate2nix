@@ -1,0 +1,15 @@
+[package]
+name = "cargo_profiles"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+dep = { path = "dep" }
+
+[profile.release]
+opt-level = 1
+codegen-units = 4
+
+[profile.release.package.dep]
+opt-level = "s"
+codegen-units = 2

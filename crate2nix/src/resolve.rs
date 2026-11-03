@@ -54,6 +54,9 @@ pub struct CrateDerivation {
     pub proc_macro: bool,
     /// This derivation builds the root crate or a workspace member.
     pub is_root_or_workspace_member: bool,
+    /// `opt-level`/`codegen-units` from the workspace's `[profile.*]` tables.
+    #[serde(default)]
+    pub profiles: crate::profile::CrateProfiles,
 }
 
 impl CrateDerivation {
@@ -191,6 +194,7 @@ impl CrateDerivation {
             proc_macro,
             binaries,
             is_root_or_workspace_member,
+            profiles: Default::default(),
         })
     }
 }

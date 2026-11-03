@@ -402,6 +402,14 @@ let
     }
 
     {
+      name = "cargo_profiles";
+      src = ./sample_projects/cargo_profiles;
+      cargoToml = "Cargo.toml";
+      customBuild = "sample_projects/cargo_profiles/test.nix";
+      expectedOutput = "Hello, cargo_profiles!";
+    }
+
+    {
       name = "cross_compile_build_dependencies";
       src = ./sample_projects/cross_compile_build_dependencies;
       customBuild = "sample_projects/cross_compile_build_dependencies/default.nix";

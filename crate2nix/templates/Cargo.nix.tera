@@ -28,6 +28,10 @@
 , extraTargetFlags ? {}
   # Whether to perform release builds: longer compile times, faster binaries.
 , release ? true
+  # Apply `opt-level` and `codegen-units` from the workspace's
+  # `[profile.release]` (or `[profile.dev]` if `release = false`), including
+  # `[profile.*.package.<name>]` and `package."*"` overrides, like cargo does.
+, useCargoProfiles ? true
   # Additional crate2nix configuration if it exists.
 , crateConfig
   ? if builtins.pathExists ./crate-config.nix
@@ -200,6 +204,19 @@ rec {
         {%- endif -%}
         {%- endif -%}
         {%- endif -%}
+
+        {%- if crate.profiles.release or crate.profiles.dev %}
+        profiles = {
+        {%- for profile_name in ["release", "dev"] %}
+        {%- set settings = crate.profiles[profile_name] %}
+        {%- if settings %}
+          {{ profile_name | safe }} = {
+          {%- if settings.opt_level %} optLevel = {{ settings.opt_level }};{% endif %}
+          {%- if settings.codegen_units %} codegenUnits = {{ settings.codegen_units | safe }};{% endif %} };
+        {%- endif %}
+        {%- endfor %}
+        };
+        {%- endif %}
 
         {%- if crate.license %}
         license = {{ crate.license }};
