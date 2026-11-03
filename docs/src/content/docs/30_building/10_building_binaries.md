@@ -46,3 +46,25 @@ derivation like this:
 let cargo_nix = callPackage ./Cargo.nix {};
 in cargo_nix.workspaceMembers."${your_crate_name}".build
 ```
+
+## Cargo profiles
+
+`buildRustCrate` compiles every crate at `-C opt-level=3` with a fixed number
+of codegen units. The generated `Cargo.nix` instead applies the `opt-level` and
+`codegen-units` set in your workspace's `[profile.release]` (or
+`[profile.dev]` when called with `release = false;`), including
+`[profile.release.package."*"]` (all non-workspace crates) and
+`[profile.release.package.<name>]` overrides, like cargo does. Only values you
+set explicitly are used. For example, to give your own crates parallel codegen
+while dependencies stay at one codegen unit:
+
+```toml
+[profile.release]
+codegen-units = 16
+
+[profile.release.package."*"]
+codegen-units = 1
+```
+
+Call the `Cargo.nix` with `useCargoProfiles = false;` to ignore the profiles.
+Other profile settings (`lto`, `debug`, `build-override`, ...) are not applied.

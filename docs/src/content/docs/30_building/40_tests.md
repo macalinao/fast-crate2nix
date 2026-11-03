@@ -44,3 +44,23 @@ the actual test command, and in the same shell. Some example use-cases include:
 * Setting (and then unsetting) the bash `set +e` option to not fail the
   derivation build even if a test fails. This is quite useful if your tests are
   not flaky and you want to cache failures.
+
+## Running tests with cargo-nextest
+
+Set `useNextest = true;` (next to `runTests`) to run the test binaries with
+[cargo-nextest](https://nexte.st) instead of executing them one by one.
+`testCrateFlags` are then passed to `cargo nextest run`.
+
+## Compiling the tests faster
+
+The test derivation compiles your crate again (lib, test harness, binaries and
+`tests/`), by default at the same `-C opt-level=3` as the release build.
+`testExtraRustcOpts` adds rustc flags to that test build only; the normal build
+and the dependencies are unaffected:
+
+```nix
+cargo_nix.rootCrate.build.override {
+  runTests = true;
+  testExtraRustcOpts = [ "-C opt-level=0" ];
+}
+```

@@ -128,8 +128,13 @@ rec {
   # name: will be part of the derivation name
   # src: the source that is needed to build the crate, usually the crate/workspace root directory
   # cargoToml: Path to the Cargo.toml file relative to src, "Cargo.toml" by default.
-  appliedCargoNix = { cargoToml ? "Cargo.toml", ... } @ args:
-    pkgs.callPackage (generatedCargoNix args) { };
+  # Like generatedCargoNix, but already called with `cargoNixArgs`, the
+  # arguments of the generated Cargo.nix (e.g. `defaultCrateOverrides`,
+  # `release`, `useCargoProfiles`).
+  appliedCargoNix = { cargoToml ? "Cargo.toml", cargoNixArgs ? { }, ... } @ args:
+    pkgs.callPackage
+      (generatedCargoNix (builtins.removeAttrs args [ "cargoNixArgs" ]))
+      cargoNixArgs;
 
   generate =
     cargoNix.internal.deprecationWarning

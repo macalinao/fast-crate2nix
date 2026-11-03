@@ -20,6 +20,8 @@ There are two commands in the `tools.nix` file:
   * `additionalCargoNixArgs`: optional, additional argument for `crate2nix`, in a list
 * `appliedCargoNix` take the same argument that `generatedCargoNix`, but also call the
   generated file with the `pkgs` provided when calling `tools.nix`
+  * `cargoNixArgs`: optional, an attribute set passed to the generated
+    `Cargo.nix`, e.g. `{ defaultCrateOverrides = ...; release = false; }`.
 
 In a flake with flake-parts:
 
