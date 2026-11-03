@@ -55,6 +55,9 @@
           unit-tests = pkgs.callPackage ./templates/nix/crate2nix/tests/run.nix {
             inherit nixTestRunner;
           };
+          tools-unit-tests = nixTestRunner.runTests {
+            tests = import ../tools-tests.nix;
+          };
         } // (pkgs.callPackage ../tests.nix { }).checks;
     };
 }
